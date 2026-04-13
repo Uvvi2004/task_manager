@@ -43,7 +43,13 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
   void _addTask() async {
     final title = _taskController.text.trim();
-    if (title.isEmpty) return;
+
+    if (title.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Task cannot be empty')),
+      );
+      return;
+    }
 
     await _taskService.addTask(title);
     _taskController.clear();
@@ -77,31 +83,27 @@ class _TaskListScreenState extends State<TaskListScreen> {
             ),
           ),
 
-          // STREAM BUILDER (REAL FIRESTORE DATA)
+          // stream builder
           Expanded(
             child: StreamBuilder<List<Task>>(
               stream: _taskService.streamTasks(),
               builder: (context, snapshot) {
-                // loading
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                // error
                 if (snapshot.hasError) {
                   return Center(child: Text('Error: ${snapshot.error}'));
                 }
 
                 final tasks = snapshot.data ?? [];
 
-                // empty
                 if (tasks.isEmpty) {
                   return const Center(
-                    child: Text('No tasks yet. Add one above!'),
+                    child: Text('No tasks yet. Start by adding one above.'),
                   );
                 }
 
-                // list
                 return ListView.builder(
                   itemCount: tasks.length,
                   itemBuilder: (context, index) {
@@ -111,30 +113,56 @@ class _TaskListScreenState extends State<TaskListScreen> {
                       title: Text(
                         task.title,
                         style: TextStyle(
-                          decoration:
-                              task.isCompleted ? TextDecoration.lineThrough : null,
+                          decoration: task.isCompleted
+                              ? TextDecoration.lineThrough
+                              : null,
                         ),
                       ),
 
                       leading: Checkbox(
                         value: task.isCompleted,
-                        onChanged: (_) => _taskService.toggleTask(task),
+                        onChanged: (_) =>
+                            _taskService.toggleTask(task),
                       ),
 
                       trailing: IconButton(
                         icon: const Icon(Icons.delete),
-                        onPressed: () => _taskService.deleteTask(task.id),
+                        onPressed: () async {
+                          final confirm = await showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Delete Task'),
+                              content: const Text('Are you sure?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(context, true),
+                                  child: const Text('Delete'),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          if (confirm == true) {
+                            _taskService.deleteTask(task.id);
+                          }
+                        },
                       ),
 
                       children: [
-                        // show subtasks
+                        // subtasks
                         ...task.subtasks.map((subtask) {
                           return ListTile(
                             title: Text(subtask['title'] ?? ''),
                           );
                         }).toList(),
 
-                        // input for new subtask
+                        // add subtask
                         Padding(
                           padding: const EdgeInsets.all(8),
                           child: TextField(
@@ -142,11 +170,14 @@ class _TaskListScreenState extends State<TaskListScreen> {
                               if (value.trim().isEmpty) return;
 
                               final updatedSubtasks =
-                                  List<Map<String, dynamic>>.from(task.subtasks);
+                                  List<Map<String, dynamic>>.from(
+                                      task.subtasks);
 
-                              updatedSubtasks.add({'title': value.trim()});
+                              updatedSubtasks
+                                  .add({'title': value.trim()});
 
-                              _taskService.updateSubtasks(task.id, updatedSubtasks);
+                              _taskService.updateSubtasks(
+                                  task.id, updatedSubtasks);
                             },
                             decoration: const InputDecoration(
                               hintText: 'Add subtask...',
