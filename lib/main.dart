@@ -107,25 +107,53 @@ class _TaskListScreenState extends State<TaskListScreen> {
                   itemBuilder: (context, index) {
                     final task = tasks[index];
 
-                    return ListTile(
+                    return ExpansionTile(
                       title: Text(
                         task.title,
                         style: TextStyle(
-                          decoration: task.isCompleted
-                              ? TextDecoration.lineThrough
-                              : null,
+                          decoration:
+                              task.isCompleted ? TextDecoration.lineThrough : null,
                         ),
                       ),
+
                       leading: Checkbox(
                         value: task.isCompleted,
-                        onChanged: (_) =>
-                            _taskService.toggleTask(task),
+                        onChanged: (_) => _taskService.toggleTask(task),
                       ),
+
                       trailing: IconButton(
                         icon: const Icon(Icons.delete),
-                        onPressed: () =>
-                            _taskService.deleteTask(task.id),
+                        onPressed: () => _taskService.deleteTask(task.id),
                       ),
+
+                      children: [
+                        // show subtasks
+                        ...task.subtasks.map((subtask) {
+                          return ListTile(
+                            title: Text(subtask['title'] ?? ''),
+                          );
+                        }).toList(),
+
+                        // input for new subtask
+                        Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: TextField(
+                            onSubmitted: (value) {
+                              if (value.trim().isEmpty) return;
+
+                              final updatedSubtasks =
+                                  List<Map<String, dynamic>>.from(task.subtasks);
+
+                              updatedSubtasks.add({'title': value.trim()});
+
+                              _taskService.updateSubtasks(task.id, updatedSubtasks);
+                            },
+                            decoration: const InputDecoration(
+                              hintText: 'Add subtask...',
+                            ),
+                          ),
+                        ),
+                      ],
                     );
                   },
                 );
