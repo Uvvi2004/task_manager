@@ -1,17 +1,54 @@
-# task_manager
+# Task Manager App
 
-A new Flutter project.
+## Overview
 
-## Getting Started
+This is a Flutter Task Manager app connected to Firebase Firestore. The app allows users to create, read, update, and delete tasks in real time. Each task can also have subtasks, and all data is stored in the cloud so it persists after restarting the app.
 
-This project is a starting point for a Flutter application.
+## Features
 
-A few resources to get you started if this is your first Flutter project:
+* Add tasks with a title
+* Mark tasks as complete using a checkbox
+* Delete tasks with confirmation
+* Real-time updates using Firestore StreamBuilder
+* Nested subtasks for each task
+* Input validation to prevent empty tasks
+* Loading, empty, and error states handled
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Enhanced Features
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+1. Nested Subtasks
+   Each task can be expanded to add and view subtasks. These are stored as a list inside Firestore and update in real time.
+
+2. Delete Confirmation Dialog
+   Before deleting a task, a confirmation popup appears to prevent accidental deletion.
+
+## Technologies Used
+
+* Flutter
+* Firebase Core
+* Cloud Firestore
+
+## Setup Instructions
+
+1. Clone the repository
+2. Run `flutter pub get`
+3. Configure Firebase using FlutterFire CLI:
+
+   ```
+   flutterfire configure
+   ```
+4. Run the app:
+
+   ```
+   flutter run
+   ```
+
+## Known Limitations
+
+* Subtasks cannot be deleted individually
+* No user authentication implemented
+* No offline mode support
+
+## APK
+
+The APK file is included in the repository for direct installation.
