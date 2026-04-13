@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
 import 'models/task.dart';
+import 'services/task_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 
@@ -26,7 +33,7 @@ class TaskListScreen extends StatefulWidget {
 
 class _TaskListScreenState extends State<TaskListScreen> {
   final TextEditingController _taskController = TextEditingController();
-  List<Task> _tasks = [];
+  final TaskService _taskService = TaskService();
 
   @override
   void dispose() {
@@ -34,33 +41,12 @@ class _TaskListScreenState extends State<TaskListScreen> {
     super.dispose();
   }
 
-  void _addTask() {
+  void _addTask() async {
     final title = _taskController.text.trim();
     if (title.isEmpty) return;
 
-    setState(() {
-      _tasks.add(
-        Task(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          title: title,
-          createdAt: DateTime.now(),
-        ),
-      );
-      _taskController.clear();
-    });
-  }
-
-  void _toggleTask(int index) {
-    setState(() {
-      final task = _tasks[index];
-      _tasks[index] = task.copyWith(isCompleted: !task.isCompleted);
-    });
-  }
-
-  void _deleteTask(int index) {
-    setState(() {
-      _tasks.removeAt(index);
-    });
+    await _taskService.addTask(title);
+    _taskController.clear();
   }
 
   @override
@@ -91,30 +77,57 @@ class _TaskListScreenState extends State<TaskListScreen> {
             ),
           ),
 
-          // list
+          // STREAM BUILDER (REAL FIRESTORE DATA)
           Expanded(
-            child: ListView.builder(
-              itemCount: _tasks.length,
-              itemBuilder: (context, index) {
-                final task = _tasks[index];
+            child: StreamBuilder<List<Task>>(
+              stream: _taskService.streamTasks(),
+              builder: (context, snapshot) {
+                // loading
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-                return ListTile(
-                  title: Text(
-                    task.title,
-                    style: TextStyle(
-                      decoration: task.isCompleted
-                          ? TextDecoration.lineThrough
-                          : null,
-                    ),
-                  ),
-                  leading: Checkbox(
-                    value: task.isCompleted,
-                    onChanged: (_) => _toggleTask(index),
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: () => _deleteTask(index),
-                  ),
+                // error
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+
+                final tasks = snapshot.data ?? [];
+
+                // empty
+                if (tasks.isEmpty) {
+                  return const Center(
+                    child: Text('No tasks yet. Add one above!'),
+                  );
+                }
+
+                // list
+                return ListView.builder(
+                  itemCount: tasks.length,
+                  itemBuilder: (context, index) {
+                    final task = tasks[index];
+
+                    return ListTile(
+                      title: Text(
+                        task.title,
+                        style: TextStyle(
+                          decoration: task.isCompleted
+                              ? TextDecoration.lineThrough
+                              : null,
+                        ),
+                      ),
+                      leading: Checkbox(
+                        value: task.isCompleted,
+                        onChanged: (_) =>
+                            _taskService.toggleTask(task),
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete),
+                        onPressed: () =>
+                            _taskService.deleteTask(task.id),
+                      ),
+                    );
+                  },
                 );
               },
             ),
