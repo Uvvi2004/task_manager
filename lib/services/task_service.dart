@@ -27,7 +27,7 @@ class TaskService {
     });
   }
 
-  // UPDATE
+  // UPDATE (toggle complete)
   Future<void> toggleTask(Task task) async {
     await tasks.doc(task.id).update({
       'isCompleted': !task.isCompleted,
@@ -37,5 +37,13 @@ class TaskService {
   // DELETE
   Future<void> deleteTask(String id) async {
     await tasks.doc(id).delete();
+  }
+
+  // UPDATE SUBTASKS
+  Future<void> updateSubtasks(
+      String taskId, List<Map<String, dynamic>> subtasks) async {
+    await tasks.doc(taskId).update({
+      'subtasks': subtasks,
+    });
   }
 }
